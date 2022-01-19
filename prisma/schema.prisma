@@ -1,0 +1,123 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+
+// User model
+model User{
+  id Int @id @default(autoincrement())
+  userIdentifier String @unique
+  firstName String
+  lastName String
+  password String
+  dateOfBirth DateTime?
+  hireDate DateTime?
+  idCardNumber String?
+  email String @unique
+  role UserRole
+  shop Shop? @relation(fields: [shopIdentifier], references: [shopIdentifier])
+  shopIdentifier String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+
+// Shop model
+model Shop{
+  id Int @id @default(autoincrement())
+  shopIdentifier String @unique
+  name String @db.VarChar(255)
+  openDate DateTime
+  description String?
+  users User[]
+  books Book[]
+  transactions Transaction[]
+  location String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// An account, upon which transactions are made
+model Accounts{
+  id Int @id @default(autoincrement())
+  accountName String @unique
+  accountNumber String @unique
+  accountingClass String
+  description String?
+  transactions Transaction[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+//A transaction describes a single entry in to an account. It is associated with one JournalEntry only one.
+//This one ensure that the transactions are balanced
+model Transaction{
+  id Int @id @default(autoincrement())
+  debit Decimal @default(0.0)
+  credit Decimal @default(0.0)
+  exchangeRate Decimal @default(1.0)
+  currency String @db.VarChar(255) @default("USD")
+  account Accounts @relation(fields: [accountNumber], references: [accountNumber])
+  accountNumber String
+  journalEntry JournalEntry @relation(fields: [journalEntryId], references: [id])
+  journalEntryId Int
+  book Book @relation(fields: [bookAccountNumber], references: [bookAccountNumber])
+  bookAccountNumber String
+  shop Shop @relation(fields: [shopIdentifier], references: [shopIdentifier])
+  shopIdentifier String
+  voided Boolean @db.TinyInt() @default(false)
+  voidedReason String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// A Journal Entry comprises a set of transactions, which have a balance set of debit and credit
+model JournalEntry{
+  id Int @id @default(autoincrement())
+  description String @default("")
+  transactions Transaction[]
+  book Book @relation(fields: [bookAccountNumber], references: [bookAccountNumber])
+  bookAccountNumber String
+  voided Boolean @db.TinyInt() @default(false)
+  voidedReason String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// A Book contains many Journal Entries
+model Book{
+  id Int @id @default(autoincrement())
+  name String @unique
+  bookAccountNumber String @unique
+  quotedCurrency String @default("USD")
+  journalEntries JournalEntry[]
+  transactions Transaction[]
+  shop Shop @relation(fields: [shopIdentifier], references: [shopIdentifier])
+  shopIdentifier String
+  createAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+
+enum UserRole{
+  GERANT
+  FINANCIER
+  ADMINISTRATEUR
+  ADMIN_SYSTEM
+  SOUS_GERANT
+  VENDEUR
+}
+enum ManagerRole{
+  GERANT
+  FINANCIER
+  ADMINSTRATEUR
+  ADMIN_SYSTEM
+}
